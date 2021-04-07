@@ -36,3 +36,8 @@ test-mockup-os-release
 
 # generated dependency packages
 *.tar.*
+
+.idea
+.gradle
+
+local.properties
