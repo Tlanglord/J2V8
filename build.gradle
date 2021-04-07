@@ -17,6 +17,21 @@ configurations {
 
 buildscript {
     repositories {
+        maven {
+            url 'https://maven.aliyun.com/repository/jcenter'
+        }
+        maven {
+            url 'https://maven.aliyun.com/repository/central'
+        }
+        maven {
+            url 'https://maven.aliyun.com/repository/google'
+        }
+        maven {
+            url 'https://maven.aliyun.com/repository/public'
+        }
+        maven {
+            url 'https://maven.aliyun.com/repository/gradle-plugin'
+        }
         jcenter()
     }
     dependencies {
@@ -29,6 +44,21 @@ apply plugin: 'com.android.library'
 apply plugin: 'spoon'
 
 repositories {
+    maven {
+        url 'https://maven.aliyun.com/repository/jcenter'
+    }
+    maven {
+        url 'https://maven.aliyun.com/repository/central'
+    }
+    maven {
+        url 'https://maven.aliyun.com/repository/google'
+    }
+    maven {
+        url 'https://maven.aliyun.com/repository/public'
+    }
+    maven {
+        url 'https://maven.aliyun.com/repository/gradle-plugin'
+    }
     jcenter()
 }
 
@@ -62,6 +92,9 @@ android {
     sourceSets {
         androidTest {
             java.srcDirs = ['src/test']
+        }
+        main{
+            java.srcDirs=['src/main/java']
         }
 
         // androidTest.setRoot('src/test')
