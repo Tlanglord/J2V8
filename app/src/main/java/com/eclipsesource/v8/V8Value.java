@@ -64,6 +64,7 @@ abstract public class V8Value implements Releasable {
         }
     }
 
+    // 初始化一个新的对象
     protected void initialize(final long runtimePtr, final Object data) {
         long objectHandle = v8.initNewV8Object(runtimePtr);
         released = false;

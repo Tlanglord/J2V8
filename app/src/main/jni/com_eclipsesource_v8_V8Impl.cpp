@@ -268,6 +268,7 @@ Isolate* getIsolate(JNIEnv *env, jlong handle);
 int getType(Handle<Value> v8Value);
 jobject getResult(JNIEnv *env, const Local<Context>& context, jobject &v8, jlong v8RuntimePtr, Handle<Value> &result, jint expectedType);
 
+// getIsolate 返回Isolate
 #define SETUP(env, v8RuntimePtr, errorReturnResult) getIsolate(env, v8RuntimePtr);\
     if ( isolate == nullptr ) {\
       return errorReturnResult;\
@@ -527,38 +528,44 @@ JNIEXPORT jlong JNICALL Java_com_eclipsesource_v8_V8__1createIsolate
     HandleScope handle_scope(runtime->isolate);
     Handle<ObjectTemplate> globalObject = ObjectTemplate::New(runtime->isolate);
     if (globalAlias == nullptr) {
-      Handle<Context> context = Context::New(runtime->isolate, nullptr, globalObject);
-      runtime->context_.Reset(runtime->isolate, context);
-      runtime->globalObject = new Persistent<Object>;
-      runtime->globalObject->Reset(runtime->isolate, context->Global()->GetPrototype()->ToObject(context).ToLocalChecked());
+        // ???
+        Handle <Context> context = Context::New(runtime->isolate, nullptr, globalObject);
+        runtime->context_.Reset(runtime->isolate, context);
+        //创建全局持久化的Object
+        runtime->globalObject = new Persistent<Object>;
+        runtime->globalObject->Reset(runtime->isolate, context->Global()->GetPrototype()->ToObject(
+                context).ToLocalChecked());
+    } else {
+        Local <String> utfAlias = createV8String(env, runtime->isolate, globalAlias);
+        globalObject->SetAccessor(utfAlias, jsWindowObjectAccessor);
+        Handle <Context> context = Context::New(runtime->isolate, nullptr, globalObject);
+        runtime->context_.Reset(runtime->isolate, context);
+        runtime->globalObject = new Persistent<Object>;
+        runtime->globalObject->Reset(runtime->isolate, context->Global()->GetPrototype()->ToObject(
+                context).ToLocalChecked());
     }
-    else {
-      Local<String> utfAlias = createV8String(env, runtime->isolate, globalAlias);
-      globalObject->SetAccessor(utfAlias, jsWindowObjectAccessor);
-      Handle<Context> context = Context::New(runtime->isolate, nullptr, globalObject);
-      runtime->context_.Reset(runtime->isolate, context);
-      runtime->globalObject = new Persistent<Object>;
-      runtime->globalObject->Reset(runtime->isolate, context->Global()->GetPrototype()->ToObject(context).ToLocalChecked());
-    }
+    // 抽象的V8Runtime
     return reinterpret_cast<jlong>(runtime);
 }
 
 JNIEXPORT jlong JNICALL Java_com_eclipsesource_v8_V8__1createInspector
   (JNIEnv *env, jobject, jlong v8RuntimePtr, jobject inspectorDelegateObj, jstring jcontextName) {
-  Isolate* isolate = SETUP(env, v8RuntimePtr, 0)
+    Isolate *isolate = SETUP(env, v8RuntimePtr, 0)
 
-  runtime->inspector = new V8Inspector();
-  runtime->inspector->delegate = env->NewGlobalRef(inspectorDelegateObj);
-  
-  InspectorDelegate* delegate = new InspectorDelegate(
-    std::bind(&V8Inspector::onResponse, runtime->inspector, std::placeholders::_1),
-    std::bind(&V8Inspector::waitFrontendMessage, runtime->inspector)
-  );
+    runtime->inspector = new V8Inspector();
+    runtime->inspector->delegate = env->NewGlobalRef(inspectorDelegateObj);
 
-  std::string contextName = jcontextName != nullptr ? createString(env, runtime->isolate, jcontextName) : "";
-  runtime->inspector->client = new V8InspectorClientImpl(runtime->isolate, v8Platform, delegate, contextName);
+    InspectorDelegate *delegate = new InspectorDelegate(
+            std::bind(&V8Inspector::onResponse, runtime->inspector, std::placeholders::_1),
+            std::bind(&V8Inspector::waitFrontendMessage, runtime->inspector)
+    );
 
-  return reinterpret_cast<jlong>(runtime->inspector);
+    std::string contextName =
+            jcontextName != nullptr ? createString(env, runtime->isolate, jcontextName) : "";
+    runtime->inspector->client = new V8InspectorClientImpl(runtime->isolate, v8Platform, delegate,
+                                                           contextName);
+
+    return reinterpret_cast<jlong>(runtime->inspector);
 }
 
 JNIEXPORT void JNICALL Java_com_eclipsesource_v8_V8__1dispatchProtocolMessage
@@ -619,6 +626,7 @@ JNIEXPORT jlong JNICALL Java_com_eclipsesource_v8_V8__1initNewV8Object
 (JNIEnv *env, jobject, jlong v8RuntimePtr) {
   Isolate* isolate = SETUP(env, v8RuntimePtr, 0)
   Local<Object> obj = Object::New(isolate);
+    // 持久化 全局
   Persistent<Object>* container = new Persistent<Object>;
   container->Reset(reinterpret_cast<V8Runtime*>(v8RuntimePtr)->isolate, obj);
   return reinterpret_cast<jlong>(container);
@@ -840,6 +848,7 @@ bool compileScript(const Local<Context>& context, Isolate *isolate, jstring &jsc
   if (jscriptName != nullptr) {
     scriptOriginPtr = createScriptOrigin(env, isolate, jscriptName, jlineNumber);
   }
+    // 编译
   MaybeLocal<Script> script_result = Script::Compile(context, source, scriptOriginPtr);
   if (!script_result.IsEmpty()) {
       script = script_result.ToLocalChecked();
@@ -864,6 +873,7 @@ bool runScript(const Local<Context>& context, Isolate* isolate, JNIEnv *env, Loc
 }
 
 bool runScript(const Local<Context>& context, Isolate* isolate, JNIEnv *env, Local<Script> *script, TryCatch* tryCatch, Local<Value> &result, jlong v8RuntimePtr) {
+    // 运行
   MaybeLocal<Value> local_result = (*script)->Run(context);
   if (!local_result.IsEmpty()) {
     result = local_result.ToLocalChecked();
@@ -883,6 +893,7 @@ JNIEXPORT void JNICALL Java_com_eclipsesource_v8_V8__1executeVoidScript
   Local<Script> script;
   if (!compileScript(context, isolate, jjstring, env, jscriptName, jlineNumber, script, &tryCatch))
     return;
+    // 运行
   runScript(context, isolate, env, &script, &tryCatch, v8RuntimePtr);
 }
 

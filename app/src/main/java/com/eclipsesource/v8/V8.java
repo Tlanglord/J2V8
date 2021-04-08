@@ -10,6 +10,11 @@
  ******************************************************************************/
 package com.eclipsesource.v8;
 
+import com.eclipsesource.v8.inspector.V8InspectorDelegate;
+import com.eclipsesource.v8.utils.V8Executor;
+import com.eclipsesource.v8.utils.V8Map;
+import com.eclipsesource.v8.utils.V8Runnable;
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
@@ -19,11 +24,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import com.eclipsesource.v8.inspector.V8InspectorDelegate;
-import com.eclipsesource.v8.utils.V8Executor;
-import com.eclipsesource.v8.utils.V8Map;
-import com.eclipsesource.v8.utils.V8Runnable;
 
 /**
  * An isolated V8Runtime. All JavaScript execution must exist
@@ -276,9 +276,11 @@ public class V8 extends V8Object {
     protected V8(final String globalAlias) {
         super(null);
         released = false;
+        // 创建Isolate，类似线程
         v8RuntimePtr = _createIsolate(globalAlias);
         locker = new V8Locker(this);
         checkThread();
+        // 拿到全局对象
         objectHandle = _getGlobalObject(v8RuntimePtr);
     }
 
